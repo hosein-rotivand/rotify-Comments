@@ -2,19 +2,18 @@
 /*
 Plugin Name: Rotify-Comments
 Description: افزونه‌ای برای مدیریت پرسش‌ها و نظرات با فرم و پنل ادمین
-Version: 1.0
+Version: 1.2
 Author: نام شما
 */
 
-// ثبت پست‌تایپ سفارشی برای پرسش‌ها و نظرات
+// ثبت پست‌تایپ‌ها
 function rotify_register_post_types() {
-    // پست‌تایپ پرسش‌ها
     register_post_type('rotify_qa',
         array(
             'labels' => array(
                 'name' => __('پرسش‌ها'),
                 'singular_name' => __('پرسش'),
-                'menu_name' => __('نظرات و پرسش‌ها'), // نام منوی اصلی
+                'menu_name' => __('نظرات و پرسش‌ها'),
             ),
             'public' => false,
             'show_ui' => true,
@@ -26,7 +25,6 @@ function rotify_register_post_types() {
         )
     );
 
-    // پست‌تایپ نظرات
     register_post_type('rotify_comment',
         array(
             'labels' => array(
@@ -35,7 +33,7 @@ function rotify_register_post_types() {
             ),
             'public' => false,
             'show_ui' => true,
-            'show_in_menu' => 'edit.php?post_type=rotify_qa', // زیرمنوی "نظرات و پرسش‌ها"
+            'show_in_menu' => 'edit.php?post_type=rotify_qa',
             'supports' => array('title', 'editor'),
             'capability_type' => 'post',
         )
@@ -43,47 +41,126 @@ function rotify_register_post_types() {
 }
 add_action('init', 'rotify_register_post_types');
 
-// اضافه کردن تعداد موارد در انتظار به منو
+// منوی تنظیمات
+function rotify_settings_menu() {
+    add_submenu_page(
+        'edit.php?post_type=rotify_qa',
+        'تنظیمات Rotify',
+        'تنظیمات',
+        'manage_options',
+        'rotify-settings',
+        'rotify_settings_page'
+    );
+}
+add_action('admin_menu', 'rotify_settings_menu');
+
+function rotify_settings_page() {
+    if (isset($_POST['rotify_settings_save'])) {
+        update_option('rotify_require_purchase', isset($_POST['rotify_require_purchase']) ? 1 : 0);
+        update_option('rotify_user_image', sanitize_text_field($_POST['rotify_user_image']));
+        update_option('rotify_expert_image', sanitize_text_field($_POST['rotify_expert_image']));
+        echo '<div class="rotify-notice rotify-updated"><p>تنظیمات با موفقیت ذخیره شد.</p></div>';
+    }
+    $require_purchase = get_option('rotify_require_purchase', 0);
+    $user_image = get_option('rotify_user_image', '');
+    $expert_image = get_option('rotify_expert_image', '');
+    ?>
+    <div class="rotify-wrap">
+        <h1 class="rotify-title">تنظیمات Rotify-Comments</h1>
+        <form method="post" class="rotify-settings-form">
+            <table class="rotify-form-table">
+                <tr class="rotify-form-row">
+                    <th class="rotify-form-th"><label for="rotify_require_purchase" class="rotify-label">نیاز به خرید محصول برای نظر دادن</label></th>
+                    <td class="rotify-form-td"><input type="checkbox" name="rotify_require_purchase" id="rotify_require_purchase" value="1" <?php checked($require_purchase, 1); ?> class="rotify-checkbox"></td>
+                </tr>
+                <tr class="rotify-form-row">
+                    <th class="rotify-form-th"><label for="rotify_user_image" class="rotify-label">تصویر کاربر</label></th>
+                    <td class="rotify-form-td">
+                        <input type="text" name="rotify_user_image" id="rotify_user_image" value="<?php echo esc_attr($user_image); ?>" class="rotify-input rotify-text">
+                        <input type="button" class="rotify-button rotify-upload-button" value="آپلود تصویر" data-target="#rotify_user_image">
+                    </td>
+                </tr>
+                <tr class="rotify-form-row">
+                    <th class="rotify-form-th"><label for="rotify_expert_image" class="rotify-label">تصویر کارشناس</label></th>
+                    <td class="rotify-form-td">
+                        <input type="text" name="rotify_expert_image" id="rotify_expert_image" value="<?php echo esc_attr($expert_image); ?>" class="rotify-input rotify-text">
+                        <input type="button" class="rotify-button rotify-upload-button" value="آپلود تصویر" data-target="#rotify_expert_image">
+                    </td>
+                </tr>
+            </table>
+            <p class="rotify-submit"><input type="submit" name="rotify_settings_save" class="rotify-button rotify-primary" value="ذخیره تغییرات"></p>
+        </form>
+    </div>
+    <script>
+        jQuery(document).ready(function($) {
+            $('.rotify-upload-button').click(function(e) {
+                e.preventDefault();
+                var target = $(this).data('target');
+                var mediaUploader = wp.media({
+                    title: 'انتخاب تصویر',
+                    button: { text: 'استفاده از این تصویر' },
+                    multiple: false
+                }).on('select', function() {
+                    var attachment = mediaUploader.state().get('selection').first().toJSON();
+                    $(target).val(attachment.url);
+                }).open();
+            });
+        });
+    </script>
+    <?php
+}
+
+// ثبت تنظیمات
+function rotify_register_settings() {
+    register_setting('rotify_settings', 'rotify_require_purchase');
+    register_setting('rotify_settings', 'rotify_user_image');
+    register_setting('rotify_settings', 'rotify_expert_image');
+}
+add_action('admin_init', 'rotify_register_settings');
+
+// تعداد موارد در انتظار
 function rotify_pending_count() {
     global $menu;
-    $qa_pending = wp_count_posts('rotify_qa')->pending; // پرسش‌های در انتظار
-    $comment_pending = wp_count_posts('rotify_comment')->pending; // نظرات در انتظار
+    $qa_pending = wp_count_posts('rotify_qa')->pending;
+    $comment_pending = wp_count_posts('rotify_comment')->pending;
     $total_pending = $qa_pending + $comment_pending;
 
     if ($total_pending > 0) {
         foreach ($menu as $key => $value) {
             if ($menu[$key][2] === 'edit.php?post_type=rotify_qa') {
-                $menu[$key][0] .= " <span class='awaiting-mod count-$total_pending' style='background: #d54e21; color: white; border-radius: 50%; padding: 2px 6px; margin-right: 5px; font-size: 12px;'>$total_pending</span>";
+                $menu[$key][0] .= " <span class='rotify-awaiting-mod rotify-count-$total_pending'>$total_pending</span>";
             }
         }
     }
 }
 add_action('admin_menu', 'rotify_pending_count');
 
-// استایل سفارشی برای منو
+// استایل‌ها
 function rotify_admin_styles() {
     ?>
     <style>
-        #toplevel_page_edit-php-post_type-rotify_qa .wp-menu-name {
-            font-weight: 600;
-            color: #fff;
-            background: linear-gradient(90deg, #0073aa, #00a0d2);
-            padding: 10px 8px !important;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-        }
-        #toplevel_page_edit-php-post_type-rotify_qa:hover .wp-menu-name {
-            background: linear-gradient(90deg, #005177, #0073aa);
-        }
-        #toplevel_page_edit-php-post_type-rotify_qa .wp-menu-image {
-            padding: 7px 0 0 0 !important;
-        }
+        .rotify-menu { font-weight: 600; color: #fff; background: linear-gradient(90deg, #0073aa, #00a0d2); padding: 10px 8px !important; border-radius: 5px; transition: all 0.3s ease; }
+        .rotify-menu:hover { background: linear-gradient(90deg, #005177, #0073aa); }
+        .rotify-menu-icon { padding: 7px 0 0 0 !important; }
+        .rotify-awaiting-mod { background: #d54e21; color: white; border-radius: 50%; padding: 2px 6px; margin-right: 5px; font-size: 12px; }
+        .rotify-star-rating { direction: rtl; font-size: 24px; color: #ddd; }
+        .rotify-star-rating input[type="radio"] { display: none; }
+        .rotify-star-rating label { cursor: pointer; padding: 0 5px; }
+        .rotify-star-rating input[type="radio"]:checked ~ label, .rotify-star-rating label:hover, .rotify-star-rating label:hover ~ label { color: #f1c40f; }
+        .rotify-comment-item img { width: 40px; height: 40px; border-radius: 50%; margin-left: 10px; vertical-align: middle; }
+        .rotify-input, .rotify-textarea, .rotify-select { width: 100%; margin-top: 5px; }
+        .rotify-form-group { margin-bottom: 15px; }
+        .rotify-button { padding: 10px 20px; border: none; cursor: pointer; }
+        .rotify-primary { background: #007bff; color: white; }
+        .rotify-disabled { background: #ccc; cursor: not-allowed; }
+        .rotify-error { color: red; margin-top: 10px; }
     </style>
     <?php
 }
+add_action('wp_head', 'rotify_admin_styles');
 add_action('admin_head', 'rotify_admin_styles');
 
-// متاباکس برای پرسش‌ها و نظرات
+// متاباکس
 function rotify_add_meta_boxes() {
     add_meta_box('rotify_meta', 'جزئیات', 'rotify_meta_box_callback', array('rotify_qa', 'rotify_comment'), 'side');
 }
@@ -94,24 +171,22 @@ function rotify_meta_box_callback($post) {
     $username = get_post_meta($post->ID, '_rotify_username', true);
     $context = get_post_meta($post->ID, '_rotify_context', true);
     $context_link = get_post_meta($post->ID, '_rotify_context_link', true);
-    $email = get_post_meta($post->ID, '_rotify_email', true);
     $fullname = get_post_meta($post->ID, '_rotify_fullname', true);
     $rating = get_post_meta($post->ID, '_rotify_rating', true);
 
-    if ($post->post_type === 'rotify_qa') { // برای پرسش‌ها
+    if ($post->post_type === 'rotify_qa') {
         ?>
-        <p><label>شماره تماس:</label><br><input type="text" name="rotify_contact" value="<?php echo esc_attr($contact); ?>" style="width: 100%;"></p>
-        <p><label>نوع ارسال:</label><br><?php echo $username ? 'با نام کاربری' : 'ناشناس'; ?></p>
-        <p><label>مربوط به:</label><br><?php echo esc_html($context); ?></p>
-        <p><label>لینک صفحه:</label><br><a href="<?php echo esc_url($context_link); ?>" target="_blank"><?php echo esc_url($context_link); ?></a></p>
+        <p class="rotify-meta-field"><label class="rotify-label">شماره تماس:</label><br><input type="text" name="rotify_contact" value="<?php echo esc_attr($contact); ?>" class="rotify-input"></p>
+        <p class="rotify-meta-field"><label class="rotify-label">نوع ارسال:</label><br><span class="rotify-text"><?php echo $username ? 'با نام کاربری' : 'ناشناس'; ?></span></p>
+        <p class="rotify-meta-field"><label class="rotify-label">مربوط به:</label><br><span class="rotify-text"><?php echo esc_html($context); ?></span></p>
+        <p class="rotify-meta-field"><label class="rotify-label">لینک صفحه:</label><br><a href="<?php echo esc_url($context_link); ?>" target="_blank" class="rotify-link"><?php echo esc_url($context_link); ?></a></p>
         <?php
-    } elseif ($post->post_type === 'rotify_comment') { // برای نظرات
+    } elseif ($post->post_type === 'rotify_comment') {
         ?>
-        <p><label>ایمیل:</label><br><input type="email" name="rotify_email" value="<?php echo esc_attr($email); ?>" style="width: 100%;"></p>
-        <p><label>نام و نام خانوادگی:</label><br><input type="text" name="rotify_fullname" value="<?php echo esc_attr($fullname); ?>" style="width: 100%;"></p>
-        <p><label>امتیاز:</label><br><input type="number" name="rotify_rating" min="1" max="5" value="<?php echo esc_attr($rating); ?>" style="width: 100%;"></p>
-        <p><label>محصول:</label><br><?php echo esc_html($context); ?></p>
-        <p><label>لینک محصول:</label><br><a href="<?php echo esc_url($context_link); ?>" target="_blank"><?php echo esc_url($context_link); ?></a></p>
+        <p class="rotify-meta-field"><label class="rotify-label">نام و نام خانوادگی:</label><br><input type="text" name="rotify_fullname" value="<?php echo esc_attr($fullname); ?>" class="rotify-input"></p>
+        <p class="rotify-meta-field"><label class="rotify-label">امتیاز:</label><br><input type="number" name="rotify_rating" min="1" max="5" value="<?php echo esc_attr($rating); ?>" class="rotify-input"></p>
+        <p class="rotify-meta-field"><label class="rotify-label">محصول:</label><br><span class="rotify-text"><?php echo esc_html($context); ?></span></p>
+        <p class="rotify-meta-field"><label class="rotify-label">لینک محصول:</label><br><a href="<?php echo esc_url($context_link); ?>" target="_blank" class="rotify-link"><?php echo esc_url($context_link); ?></a></p>
         <?php
     }
 }
@@ -120,9 +195,6 @@ function rotify_meta_box_callback($post) {
 function rotify_save_meta($post_id) {
     if ($post_id && isset($_POST['rotify_contact'])) {
         update_post_meta($post_id, '_rotify_contact', sanitize_text_field($_POST['rotify_contact']));
-    }
-    if ($post_id && isset($_POST['rotify_email'])) {
-        update_post_meta($post_id, '_rotify_email', sanitize_email($_POST['rotify_email']));
     }
     if ($post_id && isset($_POST['rotify_fullname'])) {
         update_post_meta($post_id, '_rotify_fullname', sanitize_text_field($_POST['rotify_fullname']));
@@ -140,23 +212,23 @@ function rotify_qa_form_shortcode() {
     $context_name = ($post && !is_home() && !is_front_page()) ? get_the_title($post->ID) : 'عمومی';
     $context_link = ($post && !is_home() && !is_front_page()) ? get_permalink($post->ID) : home_url();
     ?>
-    <form method="post" class="rotify-qa-form" style="max-width: 500px; margin: 20px auto; padding: 20px; border: 1px solid #ddd;">
-        <div style="margin-bottom: 15px;">
-            <label>سوال شما:</label><br>
-            <textarea name="qa_content" required style="width: 100%; height: 100px;"></textarea>
+    <form method="post" class="rotify-qa-form">
+        <div class="rotify-form-group">
+            <label class="rotify-label">سوال شما:</label>
+            <textarea name="qa_content" class="rotify-textarea" required></textarea>
         </div>
-        <div style="margin-bottom: 15px;">
-            <label>شماره تماس (اختیاری):</label><br>
-            <input type="text" name="qa_contact" style="width: 100%;">
+        <div class="rotify-form-group">
+            <label class="rotify-label">شماره تماس (اختیاری):</label>
+            <input type="text" name="qa_contact" class="rotify-input">
         </div>
-        <div style="margin-bottom: 15px;">
-            <label>نحوه نمایش:</label><br>
-            <select name="qa_username" style="width: 100%;">
+        <div class="rotify-form-group">
+            <label class="rotify-label">نحوه نمایش:</label>
+            <select name="qa_username" class="rotify-select">
                 <option value="1">ارسال با نام کاربری</option>
                 <option value="0">ارسال ناشناس</option>
             </select>
         </div>
-        <input type="submit" name="qa_submit" value="ارسال سوال" style="background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer;">
+        <input type="submit" name="qa_submit" value="ارسال سوال" class="rotify-button rotify-primary">
     </form>
     <?php
     if (isset($_POST['qa_submit'])) {
@@ -173,50 +245,61 @@ function rotify_qa_form_shortcode() {
             update_post_meta($post_id, '_rotify_contact', sanitize_text_field($_POST['qa_contact']));
             update_post_meta($post_id, '_rotify_context', $context_name);
             update_post_meta($post_id, '_rotify_context_link', $context_link);
-            echo '<p style="color: green; text-align: center;">سوال شما با موفقیت ارسال شد و در انتظار تأیید است.</p>';
+            echo '<p class="rotify-success">سوال شما با موفقیت ارسال شد و در انتظار تأیید است.</p>';
         }
     }
     return ob_get_clean();
 }
 add_shortcode('rotify_qa_form', 'rotify_qa_form_shortcode');
 
-// فرم نظرات برای ووکامرس
+// فرم نظرات
 function rotify_comment_form_shortcode() {
     ob_start();
     global $post;
     if (!function_exists('wc_get_product') || $post->post_type !== 'product') {
-        return '<p style="color: red;">این فرم فقط در صفحات محصولات ووکامرس کار می‌کند.</p>';
+        return '<p class="rotify-error">این فرم فقط در صفحات محصولات ووکامرس کار می‌کند.</p>';
     }
-    $product_name = get_the_title($post->ID);
-    $product_link = get_permalink($post->ID);
+    $product_id = $post->ID;
+    $product_name = get_the_title($product_id);
+    $product_link = get_permalink($product_id);
+    $require_purchase = get_option('rotify_require_purchase', 0);
+    $user_has_purchased = false;
+
+    if (is_user_logged_in() && $require_purchase) {
+        $user_id = get_current_user_id();
+        $user_has_purchased = wc_customer_bought_product('', $user_id, $product_id);
+    }
+
+    $can_submit = !$require_purchase || ($require_purchase && $user_has_purchased);
     ?>
-    <form method="post" class="rotify-comment-form" style="max-width: 500px; margin: 20px auto; padding: 20px; border: 1px solid #ddd;">
-        <div style="margin-bottom: 15px;">
-            <label>ایمیل:</label><br>
-            <input type="email" name="comment_email" required style="width: 100%;">
+    <form method="post" class="rotify-comment-form">
+        <div class="rotify-form-group">
+            <label class="rotify-label">نام و نام خانوادگی:</label>
+            <input type="text" name="comment_fullname" class="rotify-input" required>
         </div>
-        <div style="margin-bottom: 15px;">
-            <label>نام و نام خانوادگی:</label><br>
-            <input type="text" name="comment_fullname" required style="width: 100%;">
+        <div class="rotify-form-group">
+            <label class="rotify-label">امتیاز:</label>
+            <div class="rotify-star-rating">
+                <input type="radio" id="rotify-star5" name="comment_rating" value="5" required class="rotify-star-input"><label for="rotify-star5" class="rotify-star-label">★</label>
+                <input type="radio" id="rotify-star4" name="comment_rating" value="4" class="rotify-star-input"><label for="rotify-star4" class="rotify-star-label">★</label>
+                <input type="radio" id="rotify-star3" name="comment_rating" value="3" class="rotify-star-input"><label for="rotify-star3" class="rotify-star-label">★</label>
+                <input type="radio" id="rotify-star2" name="comment_rating" value="2" class="rotify-star-input"><label for="rotify-star2" class="rotify-star-label">★</label>
+                <input type="radio" id="rotify-star1" name="comment_rating" value="1" class="rotify-star-input"><label for="rotify-star1" class="rotify-star-label">★</label>
+            </div>
         </div>
-        <div style="margin-bottom: 15px;">
-            <label>امتیاز (۱ تا ۵):</label><br>
-            <select name="comment_rating" required style="width: 100%;">
-                <option value="1">۱ ستاره</option>
-                <option value="2">۲ ستاره</option>
-                <option value="3">۳ ستاره</option>
-                <option value="4">۴ ستاره</option>
-                <option value="5">۵ ستاره</option>
-            </select>
+        <div class="rotify-form-group">
+            <label class="rotify-label">نظر شما:</label>
+            <textarea name="comment_content" class="rotify-textarea" required></textarea>
         </div>
-        <div style="margin-bottom: 15px;">
-            <label>نظر شما:</label><br>
-            <textarea name="comment_content" required style="width: 100%; height: 100px;"></textarea>
-        </div>
-        <input type="submit" name="comment_submit" value="ارسال نظر" style="background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer;">
+        <?php if ($can_submit) : ?>
+            <input type="submit" name="comment_submit" value="ارسال نظر" class="rotify-button rotify-primary">
+        <?php else : ?>
+            <input type="submit" name="comment_submit" value="ارسال نظر" class="rotify-button rotify-disabled" disabled>
+            <p class="rotify-error">برای ارسال نظر محصول را خریداری کنید.</p>
+        <?php endif; ?>
     </form>
     <?php
-    if (isset($_POST['comment_submit'])) {
+    if (isset($_POST['comment_submit']) && $can_submit) {
         $post_title = 'نظر در ' . $product_name;
         $post_id = wp_insert_post(array(
             'post_type' => 'rotify_comment',
@@ -226,13 +309,14 @@ function rotify_comment_form_shortcode() {
         ));
         
         if ($post_id) {
-            update_post_meta($post_id, '_rotify_email', sanitize_email($_POST['comment_email']));
             update_post_meta($post_id, '_rotify_fullname', sanitize_text_field($_POST['comment_fullname']));
             update_post_meta($post_id, '_rotify_rating', intval($_POST['comment_rating']));
             update_post_meta($post_id, '_rotify_context', $product_name);
             update_post_meta($post_id, '_rotify_context_link', $product_link);
-            echo '<p style="color: green; text-align: center;">نظر شما با موفقیت ارسال شد و در انتظار تأیید است.</p>';
+            echo '<p class="rotify-success">نظر شما با موفقیت ارسال شد و در انتظار تأیید است.</p>';
         }
+    } elseif (isset($_POST['comment_submit']) && !$can_submit) {
+        echo '<p class="rotify-error">برای ارسال نظر محصول را خریداری کنید.</p>';
     }
     return ob_get_clean();
 }
@@ -244,16 +328,16 @@ function rotify_qa_display_shortcode() {
     $args = array('post_type' => 'rotify_qa', 'post_status' => 'publish', 'posts_per_page' => -1);
     $qa_query = new WP_Query($args);
     ?>
-    <div class="rotify-qa-display" style="max-width: 700px; margin: 20px auto;">
+    <div class="rotify-qa-display">
         <?php while ($qa_query->have_posts()) : $qa_query->the_post(); 
             $username = get_post_meta(get_the_ID(), '_rotify_username', true);
             $name = $username && is_user_logged_in() ? wp_get_current_user()->display_name : 'ناشناس';
             $answer = get_post_meta(get_the_ID(), '_wp_editor_answer', true);
         ?>
-            <div class="qa-item" style="padding: 15px; border-bottom: 1px solid #ddd;">
-                <p style="margin: 0 0 10px;"><strong><?php echo esc_html($name); ?>:</strong> <?php the_content(); ?></p>
+            <div class="rotify-qa-item">
+                <p class="rotify-qa-content"><strong class="rotify-qa-name"><?php echo esc_html($name); ?>:</strong> <?php the_content(); ?></p>
                 <?php if ($answer) : ?>
-                    <p style="margin: 0; color: #666;"><strong>پاسخ کارشناس:</strong> <?php echo wpautop($answer); ?></p>
+                    <p class="rotify-qa-answer"><strong class="rotify-answer-label">پاسخ کارشناس:</strong> <?php echo wpautop($answer); ?></p>
                 <?php endif; ?>
             </div>
         <?php endwhile; wp_reset_postdata(); ?>
@@ -268,20 +352,26 @@ function rotify_comment_display_shortcode() {
     ob_start();
     $args = array('post_type' => 'rotify_comment', 'post_status' => 'publish', 'posts_per_page' => -1);
     $comment_query = new WP_Query($args);
+    $user_image = get_option('rotify_user_image', '');
+    $expert_image = get_option('rotify_expert_image', '');
     ?>
-    <div class="rotify-comment-display" style="max-width: 700px; margin: 20px auto;">
+    <div class="rotify-comment-display">
         <?php while ($comment_query->have_posts()) : $comment_query->the_post(); 
             $fullname = get_post_meta(get_the_ID(), '_rotify_fullname', true);
             $rating = get_post_meta(get_the_ID(), '_rotify_rating', true);
             $answer = get_post_meta(get_the_ID(), '_wp_editor_answer', true);
         ?>
-            <div class="comment-item" style="padding: 15px; border-bottom: 1px solid #ddd;">
-                <p style="margin: 0 0 10px;">
-                    <strong><?php echo esc_html($fullname); ?>:</strong> <?php the_content(); ?>
-                    <span style="color: #f1c40f;">(<?php echo str_repeat('★', $rating) . str_repeat('☆', 5 - $rating); ?>)</span>
+            <div class="rotify-comment-item">
+                <p class="rotify-comment-content">
+                    <?php if ($user_image) : ?><img src="<?php echo esc_url($user_image); ?>" alt="کاربر" class="rotify-user-image"><?php endif; ?>
+                    <strong class="rotify-comment-name"><?php echo esc_html($fullname); ?>:</strong> <?php the_content(); ?>
+                    <span class="rotify-comment-rating">(<?php echo str_repeat('★', $rating) . str_repeat('☆', 5 - $rating); ?>)</span>
                 </p>
                 <?php if ($answer) : ?>
-                    <p style="margin: 0; color: #666;"><strong>پاسخ کارشناس:</strong> <?php echo wpautop($answer); ?></p>
+                    <p class="rotify-comment-answer">
+                        <?php if ($expert_image) : ?><img src="<?php echo esc_url($expert_image); ?>" alt="کارشناس" class="rotify-expert-image"><?php endif; ?>
+                        <strong class="rotify-answer-label">پاسخ کارشناس:</strong> <?php echo wpautop($answer); ?>
+                    </p>
                 <?php endif; ?>
             </div>
         <?php endwhile; wp_reset_postdata(); ?>
@@ -308,18 +398,20 @@ add_filter('manage_rotify_comment_posts_columns', 'rotify_admin_columns');
 function rotify_admin_column_content($column, $post_id) {
     switch ($column) {
         case 'content':
+            echo '<div class="rotify-column-content">';
             the_content();
+            echo '</div>';
             break;
         case 'answer':
             $answer = get_post_meta($post_id, '_wp_editor_answer', true);
-            echo $answer ? wpautop($answer) : 'بدون پاسخ';
+            echo '<div class="rotify-column-answer">' . ($answer ? wpautop($answer) : 'بدون پاسخ') . '</div>';
             break;
         case 'status':
-            echo get_post_status($post_id) === 'publish' ? 'تأیید شده' : 'در انتظار';
+            echo '<span class="rotify-column-status">' . (get_post_status($post_id) === 'publish' ? 'تأیید شده' : 'در انتظار') . '</span>';
             break;
         case 'actions':
-            echo '<a href="' . admin_url('post.php?post=' . $post_id . '&action=edit') . '" class="button">پاسخ به کاربر</a>';
-            echo ' <a href="' . wp_nonce_url(admin_url('post.php?post=' . $post_id . '&action=trash'), 'trash-post_' . $post_id) . '" class="button" style="color: red;">حذف</a>';
+            echo '<a href="' . admin_url('post.php?post=' . $post_id . '&action=edit') . '" class="rotify-button rotify-action-edit">پاسخ به کاربر</a>';
+            echo ' <a href="' . wp_nonce_url(admin_url('post.php?post=' . $post_id . '&action=trash'), 'trash-post_' . $post_id) . '" class="rotify-button rotify-action-delete">حذف</a>';
             break;
     }
 }
@@ -330,8 +422,8 @@ add_action('manage_rotify_comment_posts_custom_column', 'rotify_admin_column_con
 function rotify_answer_editor($post) {
     if (!in_array($post->post_type, array('rotify_qa', 'rotify_comment'))) return;
     $answer = get_post_meta($post->ID, '_wp_editor_answer', true);
-    echo '<h2>پاسخ به کاربر</h2>';
-    wp_editor($answer, 'rotify_answer_editor', array('textarea_name' => 'rotify_answer'));
+    echo '<h2 class="rotify-editor-title">پاسخ به کاربر</h2>';
+    wp_editor($answer, 'rotify_answer_editor', array('textarea_name' => 'rotify_answer', 'textarea_rows' => 10));
 }
 add_action('edit_form_after_editor', 'rotify_answer_editor');
 
