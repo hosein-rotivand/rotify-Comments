@@ -6,7 +6,21 @@ if (!defined('ABSPATH')) {
 // نمایش پرسش‌ها
 function rotify_qa_display_shortcode() {
     ob_start();
-    $args = array('post_type' => 'rotify_qa', 'post_status' => 'publish', 'posts_per_page' => -1);
+    global $post;
+    $current_page_link = get_permalink($post->ID); // لینک صفحه فعلی رو می‌گیره
+    // تنظیمات کوئری برای گرفتن پرسش‌های مربوط به صفحه فعلی
+    $args = array(
+        'post_type' => 'rotify_qa',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'meta_query' => array(
+            array(
+                'key' => '_rotify_context_link', // فقط پرسش‌هایی که لینک‌شون با صفحه فعلی برابر باشه
+                'value' => $current_page_link,
+                'compare' => '='
+            )
+        )
+    );
     $qa_query = new WP_Query($args);
     $user_image = get_option('rotify_user_image', '');
     $expert_image = get_option('rotify_expert_image', '');
@@ -16,7 +30,7 @@ function rotify_qa_display_shortcode() {
             <?php while ($qa_query->have_posts()) : $qa_query->the_post(); 
                 $username = get_post_meta(get_the_ID(), '_rotify_username', true);
                 $name = $username && is_user_logged_in() ? wp_get_current_user()->display_name : 'ناشناس';
-                $answer = get_post_meta(get_the_ID(), '_wp_editor_answer', true);
+                $answer = get_post_meta(get_the_ID(), '_rotify_answer', true); // تغییر به کلید درست
             ?>
                 <div class="rotify-qa-item">
                     <p class="rotify-qa-content">
@@ -47,7 +61,21 @@ add_shortcode('rotify_qa_display', 'rotify_qa_display_shortcode');
 // نمایش نظرات
 function rotify_comment_display_shortcode() {
     ob_start();
-    $args = array('post_type' => 'rotify_comment', 'post_status' => 'publish', 'posts_per_page' => -1);
+    global $post;
+    $current_page_link = get_permalink($post->ID); // لینک صفحه فعلی رو می‌گیره
+    // تنظیمات کوئری برای گرفتن نظرات مربوط به صفحه فعلی
+    $args = array(
+        'post_type' => 'rotify_comment',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'meta_query' => array(
+            array(
+                'key' => '_rotify_context_link', // فقط نظراتی که لینک‌شون با صفحه فعلی برابر باشه
+                'value' => $current_page_link,
+                'compare' => '='
+            )
+        )
+    );
     $comment_query = new WP_Query($args);
     $user_image = get_option('rotify_user_image', '');
     $expert_image = get_option('rotify_expert_image', '');
@@ -57,7 +85,7 @@ function rotify_comment_display_shortcode() {
             <?php while ($comment_query->have_posts()) : $comment_query->the_post(); 
                 $fullname = get_post_meta(get_the_ID(), '_rotify_fullname', true);
                 $rating = get_post_meta(get_the_ID(), '_rotify_rating', true);
-                $answer = get_post_meta(get_the_ID(), '_wp_editor_answer', true);
+                $answer = get_post_meta(get_the_ID(), '_rotify_answer', true); // تغییر به کلید درست
             ?>
                 <div class="rotify-comment-item">
                     <p class="rotify-comment-content">
