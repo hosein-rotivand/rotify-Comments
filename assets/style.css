@@ -1,0 +1,230 @@
+/* استایل کلی */
+.rotify-qa-display, .rotify-comment-display {
+    max-width: 800px;
+    margin: 20px auto;
+}
+
+/* کادر هر مکالمه */
+.rotify-qa-item, .rotify-comment-item {
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: #fff;
+    position: relative;
+    border-radius: 10px!important;
+}
+
+/* محتوای پرسش/نظر */
+.rotify-qa-content, .rotify-comment-content {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.rotify-user-image, .rotify-expert-image {
+    width: 40px; /* اندازه یکسان */
+    height: 40px;
+    border-radius: 50%; /* حاشیه گرد */
+    margin-left: 10px; /* فاصله از متن */
+    object-fit: cover; /* برش مناسب تصویر */
+}
+
+.rotify-qa-name, .rotify-comment-name {
+    font-weight: bold;
+    margin-left: 10px;
+    color: #333;
+}
+
+.rotify-qa-text, .rotify-comment-text {
+    flex: 1;
+    color: #555;
+}
+
+/* استایل ستاره‌ها */
+.rotify-comment-rating {
+    margin-right: 10px;
+    color: #f1c40f; /* رنگ زرد برای ستاره‌های پر */
+    font-size: 18px;
+}
+
+.rotify-star-rating {
+    direction: rtl;
+    font-size: 24px;
+    color: #ddd; /* رنگ خاکستری برای ستاره‌های خالی */
+    display: inline-flex;
+}
+
+.rotify-star-input {
+    display: none;
+}
+
+.rotify-star-label {
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+.rotify-star-input:checked ~ .rotify-star-label,
+.rotify-star-label:hover,
+.rotify-star-label:hover ~ .rotify-star-label {
+    color: #f1c40f; /* رنگ زرد هنگام انتخاب یا هاور */
+}
+
+/* پاسخ کارشناس */
+.rotify-qa-answer, .rotify-comment-answer {
+    margin-top: 15px;
+    padding-top: 15px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    border-top: 1px solid #ddd;
+    margin-top: 5px;
+}
+
+.rotify-qa-answer:before, .rotify-comment-answer:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 50px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid #ddd;
+}
+
+.rotify-answer-label {
+    font-weight: bold;
+    margin-left: 10px;
+    color: #333;
+}
+
+.rotify-answer-text {
+    flex: 1;
+    color: #555;
+}
+
+/* فرم‌ها */
+.rotify-qa-form, .rotify-comment-form {
+    margin: 20px 0;
+}
+
+.rotify-form-group {
+    margin-bottom: 15px;
+}
+
+.rotify-label {
+    display: block;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.rotify-input, .rotify-textarea, .rotify-select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.rotify-button {
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+}
+
+.rotify-primary {
+    background: #007bff;
+    color: white;
+}
+
+.rotify-disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* پیام‌ها */
+.rotify-error, .rotify-success {
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 4px;
+}
+
+.rotify-error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.rotify-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+/* منوها */
+.rotify-menu {
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(90deg, #0073aa, #00a0d2);
+    padding: 10px 8px !important;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.rotify-menu:hover {
+    background: linear-gradient(90deg, #005177, #0073aa);
+}
+
+.rotify-awaiting-mod {
+    background: #d54e21;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    margin-right: 5px;
+    font-size: 12px;
+}
+
+
+/*==========*/
+/*form porsesh*/
+.rotify-qa-form label {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    display: block;
+}
+/*==========*/
+/*forminput*/
+textarea.rotify-textarea {
+    border-radius: 10px;
+}
+input.rotify-input {
+    border-radius: 10px!important;
+}
+
+.rotify-qa-form select {
+    width: 100%!important;
+    padding: 10px!important;
+    font-size: 14px!important;
+    border: 1px solid #ddd!important;
+    border-radius: 10px!important;
+    margin-bottom: 20px!important;
+}
+
+/*btn porsesh*/
+input.rotify-button.rotify-primary {
+    background: blue!important;
+    color: #fff!important;
+    border-color: #fff!important;
+    border-radius: 10px!important;
+}
+/*img user*/
+img.rotify-user-image.lazyloaded {
+    width: 40px!important;
+    height: 40px!important;
+    border-radius: 27px!important;
+}
+
+/*img admin*/
+img.rotify-expert-image.ls-is-cached.lazyloaded {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 27px!important;
+}
